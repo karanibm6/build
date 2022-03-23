@@ -6,6 +6,7 @@ package main_test
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -19,9 +20,12 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	containerreg "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"k8s.io/apimachinery/pkg/util/rand"
 )
 
 var _ = Describe("Bundle Loader", func() {
+	const exampleImage = "ghcr.io/shipwright-io/sample-go/source-bundle:latest"
+
 	var run = func(args ...string) error {
 		// discard log output
 		log.SetOutput(ioutil.Discard)
@@ -90,8 +94,6 @@ var _ = Describe("Bundle Loader", func() {
 	})
 
 	Context("Pulling image anonymously", func() {
-		const exampleImage = "ghcr.io/shipwright-io/sample-go/source-bundle:latest"
-
 		It("should pull and unbundle an image from a public registry", func() {
 			withTempDir(func(target string) {
 				Expect(run(
@@ -109,8 +111,7 @@ var _ = Describe("Bundle Loader", func() {
 					Expect(run(
 						"--image", exampleImage,
 						"--target", target,
-						"--result-file-image-digest",
-						filename,
+						"--result-file-image-digest", filename,
 					)).ToNot(HaveOccurred())
 
 					tag, err := name.NewTag(exampleImage)
@@ -118,6 +119,98 @@ var _ = Describe("Bundle Loader", func() {
 
 					Expect(filecontent(filename)).To(Equal(getImageDigest(tag).String()))
 				})
+			})
+		})
+	})
+
+	Context("Pulling image from private location", func() {
+		var testImage string
+		var dockerConfigFile string
+
+		var copyImage = func(src, dst name.Reference) {
+			srcAuth, err := ResolveAuthBasedOnTargetUsingConfigFile(src, dockerConfigFile)
+			Expect(err).ToNot(HaveOccurred())
+
+			srcDesc, err := remote.Get(src, remote.WithAuth(srcAuth))
+			Expect(err).ToNot(HaveOccurred())
+
+			srcImage, err := srcDesc.Image()
+			Expect(err).ToNot(HaveOccurred())
+
+			dstAuth, err := ResolveAuthBasedOnTargetUsingConfigFile(dst, dockerConfigFile)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = remote.Write(dst, srcImage, remote.WithAuth(dstAuth))
+			Expect(err).ToNot(HaveOccurred())
+		}
+
+		BeforeEach(func() {
+			registryLocation, ok := os.LookupEnv("TEST_BUNDLE_REGISTRY_TARGET")
+			if !ok {
+				Skip("skipping test case with private registry location, because TEST_BUNDLE_REGISTRY_TARGET environment variable is not set, i.e. 'docker.io/some-namespace'")
+			}
+
+			dockerConfigFile, ok = os.LookupEnv("TEST_BUNDLE_DOCKERCONFIGFILE")
+			if !ok {
+				Skip("skipping test case with private registry, because TEST_BUNDLE_DOCKERCONFIGFILE environment variable is not set, i.e. '$HOME/.docker/config.json'")
+			}
+
+			testImage = fmt.Sprintf("%s/%s:%s",
+				registryLocation,
+				rand.String(5),
+				"source",
+			)
+
+			src, err := name.ParseReference(exampleImage)
+			Expect(err).ToNot(HaveOccurred())
+
+			dst, err := name.ParseReference(testImage)
+			Expect(err).ToNot(HaveOccurred())
+
+			copyImage(src, dst)
+		})
+
+		AfterEach(func() {
+			ref, err := name.ParseReference(testImage)
+			Expect(err).ToNot(HaveOccurred())
+
+			auth, err := ResolveAuthBasedOnTargetUsingConfigFile(ref, dockerConfigFile)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Delete test image (best effort)
+			_ = Prune(context.TODO(), testImage, auth)
+		})
+
+		It("should pull and unpack an image from a private registry", func() {
+			withTempDir(func(target string) {
+				Expect(run(
+					"--image", testImage,
+					"--target", target,
+				)).ToNot(HaveOccurred())
+
+				Expect(filepath.Join(target, "LICENSE")).To(BeAnExistingFile())
+			})
+		})
+
+		It("should delete the image after it was pulled", func() {
+			withTempDir(func(target string) {
+				Expect(run(
+					"--image", testImage,
+					"--prune",
+					"--secret-path", dockerConfigFile,
+					"--target", target,
+				)).ToNot(HaveOccurred())
+
+				Expect(filepath.Join(target, "LICENSE")).To(BeAnExistingFile())
+
+				ref, err := name.ParseReference(testImage)
+				Expect(err).ToNot(HaveOccurred())
+
+				auth, err := ResolveAuthBasedOnTargetUsingConfigFile(ref, dockerConfigFile)
+				Expect(err).ToNot(HaveOccurred())
+
+				_, err = remote.Head(ref, remote.WithAuth(auth))
+				Expect(err).To(HaveOccurred())
 			})
 		})
 	})
