@@ -75,6 +75,8 @@ var _ = Describe("Image Processing overrides", func() {
 					"$(results.shp-image-digest.path)",
 					"--result-file-image-size",
 					"$(results.shp-image-size.path)",
+					"--result-file-image-vulnerabilities",
+					"$(results.shp-image-vulnerabilities.path)",
 				}))
 				Expect(processedTaskRun.Spec.TaskSpec.Steps[1].VolumeMounts).ToNot(utils.ContainNamedElement("shp-output-directory"))
 			})
@@ -143,6 +145,8 @@ var _ = Describe("Image Processing overrides", func() {
 						"$(results.shp-image-digest.path)",
 						"--result-file-image-size",
 						"$(results.shp-image-size.path)",
+						"--result-file-image-vulnerabilities",
+						"$(results.shp-image-vulnerabilities.path)",
 					}))
 					Expect(processedTaskRun.Spec.TaskSpec.Steps[1].VolumeMounts).To(utils.ContainNamedElement("shp-output-directory"))
 				})
@@ -180,6 +184,8 @@ var _ = Describe("Image Processing overrides", func() {
 						"$(results.shp-image-digest.path)",
 						"--result-file-image-size",
 						"$(results.shp-image-size.path)",
+						"--result-file-image-vulnerabilities",
+						"$(results.shp-image-vulnerabilities.path)",
 					}))
 					Expect(processedTaskRun.Spec.TaskSpec.Steps[1].VolumeMounts).To(utils.ContainNamedElement("shp-output-directory"))
 				})
@@ -225,6 +231,8 @@ var _ = Describe("Image Processing overrides", func() {
 					"$(results.shp-image-digest.path)",
 					"--result-file-image-size",
 					"$(results.shp-image-size.path)",
+					"--result-file-image-vulnerabilities",
+					"$(results.shp-image-vulnerabilities.path)",
 					"--secret-path",
 					"/workspace/shp-push-secret",
 				}))

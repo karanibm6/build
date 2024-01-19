@@ -93,6 +93,12 @@ func SetupImageProcessing(taskRun *pipelineapi.TaskRun, cfg *config.Config, buil
 		// add the result arguments
 		stepArgs = append(stepArgs, "--result-file-image-digest", fmt.Sprintf("$(results.%s-%s.path)", prefixParamsResultsVolumes, imageDigestResult))
 		stepArgs = append(stepArgs, "--result-file-image-size", fmt.Sprintf("$(results.%s-%s.path)", prefixParamsResultsVolumes, imageSizeResult))
+		stepArgs = append(stepArgs, "--result-file-image-vulnerabilities", fmt.Sprintf("$(results.%s-%s.path)", prefixParamsResultsVolumes, imageVulnerabilities))
+
+		// add vulnerability scan arguments
+		if buildOutput.VulnerabilityScan != nil {
+			stepArgs = append(stepArgs, "--vuln-settings", buildOutput.VulnerabilityScan.String())
+		}
 
 		// add the push step
 

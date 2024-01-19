@@ -5,6 +5,9 @@
 package v1alpha1
 
 import (
+	"encoding/json"
+
+	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -107,6 +110,50 @@ const (
 	// will bypass checking the remote repository.
 	AnnotationBuildVerifyRepository = BuildDomain + "/verify.repository"
 )
+
+// VulnerabilityIgnoreOptions refers to ignore options for vulnerability scan
+type VulnerabilityIgnoreOptions struct {
+
+	// Issues references the security issues to be ignored in vulnerability scan
+	Issues []string `json:"issues,omitempty"`
+
+	// Severity indicates the severities of security issues to be ignored (comma separated)
+	Severity string `json:"severity,omitempty"`
+
+	// IgnoreUnfixed indicates flag to display only fixed vulnerabilities
+	Unfixed bool `json:"unfixed,omitempty"`
+}
+
+// VulnerabilityScanOptions references the options for vulnerability scanning
+type VulnerabilityScanOptions struct {
+
+	// Enabled indicates whether to run vulnerability scan for image
+	Enabled bool `json:"enabled,omitempty"`
+
+	// FailPush indicates whether to push the image if the vulnerability scan fails
+	FailPush bool `json:"fail,omitempty"`
+
+	// IgnoreOptions refers to ignore options for vulnerability scan
+	IgnoreOptions *VulnerabilityIgnoreOptions `json:"ignore,omitempty"`
+}
+
+var _ pflag.Value = &VulnerabilityScanOptions{}
+
+func (v *VulnerabilityScanOptions) Set(s string) error {
+	return json.Unmarshal([]byte(s), v)
+}
+
+func (v *VulnerabilityScanOptions) String() string {
+	data, err := json.Marshal(*v)
+	if err != nil {
+		panic(err.Error())
+	}
+	return string(data)
+}
+
+func (v *VulnerabilityScanOptions) Type() string {
+	return "vulnerability-scan-settings"
+}
 
 // BuildSpec defines the desired state of Build
 type BuildSpec struct {
@@ -233,6 +280,11 @@ type Image struct {
 	//
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
+
+	// VulnerabilityScan references the options for vulnerability scanning
+	//
+	// +optional
+	VulnerabilityScan *VulnerabilityScanOptions `json:"vulnerabilityScan,omitempty"`
 }
 
 // BuildStatus defines the observed state of Build

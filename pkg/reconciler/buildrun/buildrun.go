@@ -466,6 +466,17 @@ func (r *ReconcileBuildRun) Reconcile(ctx context.Context, request reconcile.Req
 				}
 			}
 
+			if buildRun.Status.Output != nil {
+				if len(buildRun.Status.Output.Vulnerabilities) > 0 {
+					if buildRun.Spec.BuildSpec.Output.VulnerabilityScan.FailPush {
+						return reconcile.Result{}, resources.UpdateConditionWithFalseStatus(ctx, r.client, buildRun, fmt.Sprintf("Vulnerabilities have been found in the output image. For detailed information, see kubectl --namespace %s logs %s --container step-image-processing",
+							buildRun.Namespace,
+							lastTaskRun.Status.PodName,
+						), "VulnerabilitiesFound")
+					}
+				}
+			}
+
 			ctxlog.Info(ctx, "updating buildRun status", namespace, request.Namespace, name, request.Name)
 			if err := r.client.Status().Update(ctx, buildRun); err != nil {
 				return reconcile.Result{}, err

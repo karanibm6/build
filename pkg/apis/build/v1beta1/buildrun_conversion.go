@@ -88,6 +88,19 @@ func (src *BuildRun) ConvertTo(ctx context.Context, obj *unstructured.Unstructur
 				Name: *src.Spec.Output.PushSecret,
 			}
 		}
+		if src.Spec.Output.VulnerabilityScan != nil {
+			alphaBuildRun.Spec.Output.VulnerabilityScan = &v1alpha1.VulnerabilityScanOptions{
+				Enabled:  src.Spec.Output.VulnerabilityScan.Enabled,
+				FailPush: src.Spec.Output.VulnerabilityScan.FailPush,
+			}
+			if src.Spec.Output.VulnerabilityScan.IgnoreOptions != nil {
+				alphaBuildRun.Spec.Output.VulnerabilityScan.IgnoreOptions = &v1alpha1.VulnerabilityIgnoreOptions{
+					Issues:   src.Spec.Output.VulnerabilityScan.IgnoreOptions.Issues,
+					Severity: src.Spec.Output.VulnerabilityScan.IgnoreOptions.Severity,
+					Unfixed:  src.Spec.Output.VulnerabilityScan.IgnoreOptions.Unfixed,
+				}
+			}
+		}
 	}
 
 	// BuildRunSpec State
@@ -166,9 +179,23 @@ func (src *BuildRun) ConvertFrom(ctx context.Context, obj *unstructured.Unstruct
 		}
 	}
 
+	var output *Output
+	if alphaBuildRun.Status.Output != nil {
+		output = &Output{
+			Digest: alphaBuildRun.Status.Output.Digest,
+			Size:   alphaBuildRun.Status.Output.Size,
+		}
+		for _, vuln := range alphaBuildRun.Status.Output.Vulnerabilities {
+			output.Vulnerabilities = append(output.Vulnerabilities, Vulnerability{
+				VulnerabilityID: vuln.VulnerabilityID,
+				Severity:        vuln.Severity,
+			})
+		}
+	}
+
 	src.Status = BuildRunStatus{
 		Source:         sourceStatus,
-		Output:         (*Output)(alphaBuildRun.Status.Output),
+		Output:         output,
 		Conditions:     conditions,
 		TaskRunName:    alphaBuildRun.Status.LatestTaskRunRef,
 		StartTime:      alphaBuildRun.Status.StartTime,
@@ -233,6 +260,21 @@ func (dest *BuildRunSpec) ConvertFrom(orig *v1alpha1.BuildRunSpec) error {
 		if orig.Output.Credentials != nil {
 			dest.Output.PushSecret = &orig.Output.Credentials.Name
 		}
+
+		if orig.Output.VulnerabilityScan != nil {
+			dest.Output.VulnerabilityScan = &VulnerabilityScanOptions{
+				Enabled:  orig.Output.VulnerabilityScan.Enabled,
+				FailPush: orig.Output.VulnerabilityScan.FailPush,
+			}
+			if orig.Output.VulnerabilityScan.IgnoreOptions != nil {
+				dest.Output.VulnerabilityScan.IgnoreOptions = &VulnerabilityIgnoreOptions{
+					Issues:   orig.Output.VulnerabilityScan.IgnoreOptions.Issues,
+					Severity: orig.Output.VulnerabilityScan.IgnoreOptions.Severity,
+					Unfixed:  orig.Output.VulnerabilityScan.IgnoreOptions.Unfixed,
+				}
+			}
+		}
+
 	}
 
 	// BuildRunSpec State

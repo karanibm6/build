@@ -138,6 +138,12 @@ type GitSourceResult struct {
 	BranchName string `json:"branchName,omitempty"`
 }
 
+// Vulnerability defines a vulnerability by its ID and severity
+type Vulnerability struct {
+	VulnerabilityID string `json:"vulnerabilityID,omitempty"`
+	Severity        string `json:"severity,omitempty"`
+}
+
 // Output holds the results emitted from the output step (build-and-push)
 type Output struct {
 	// Digest holds the digest of output image
@@ -145,6 +151,9 @@ type Output struct {
 
 	// Size holds the compressed size of output image
 	Size int64 `json:"size,omitempty"`
+
+	// List of vulnerabilities detected in the image
+	Vulnerabilities []Vulnerability `json:"vulnerabilities,omitempty"`
 }
 
 // BuildRunStatus defines the observed state of BuildRun

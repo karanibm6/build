@@ -9,6 +9,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/google/go-containerregistry/pkg/name"
 	containerreg "github.com/google/go-containerregistry/pkg/v1"
+	shipwrightv1alpha1 "github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"github.com/shipwright-io/build/pkg/image"
 	"github.com/spf13/pflag"
 )
@@ -42,7 +44,9 @@ type settings struct {
 	image,
 	resultFileImageDigest,
 	resultFileImageSize,
+	resultFileImageVulnerabilities,
 	secretPath string
+	vulnerabilitySettings shipwrightv1alpha1.VulnerabilityScanOptions
 }
 
 func getAnnotation() []string {
@@ -83,6 +87,9 @@ func initializeFlag() {
 	flagValues.label = pflag.StringArray("label", nil, "New labels to add")
 	pflag.StringVar(&flagValues.resultFileImageDigest, "result-file-image-digest", "", "A file to write the image digest to")
 	pflag.StringVar(&flagValues.resultFileImageSize, "result-file-image-size", "", "A file to write the image size to")
+	pflag.StringVar(&flagValues.resultFileImageVulnerabilities, "result-file-image-vulnerabilities", "", "A file to write the image vulnerabilities to")
+
+	pflag.Var(&flagValues.vulnerabilitySettings, "vuln-settings", "Vulnerability Settings")
 }
 
 func main() {
@@ -169,6 +176,38 @@ func runImageProcessing(ctx context.Context) error {
 			log.Printf("Failed to mutate the image: %v\n", err)
 			return err
 		}
+	}
+
+	//  Here we will check for image vulnerabilities if vulnerability scanning is enabled.
+	var vulns []shipwrightv1alpha1.Vulnerability
+	if flagValues.vulnerabilitySettings.Enabled && flagValues.push != "" {
+		imagePath := flagValues.push
+		if img != nil {
+			entries, err := os.ReadDir(flagValues.push)
+			if err != nil {
+				return err
+			}
+			imagePath = imagePath + "/" + entries[0].Name()
+		}
+		vulns, err = image.RunVulnerabilityScan(ctx, imagePath, flagValues.vulnerabilitySettings)
+		if err != nil {
+			return err
+		}
+		vulnsData, err := json.Marshal(vulns)
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(flagValues.resultFileImageVulnerabilities, vulnsData, 0640); err != nil {
+			return err
+		}
+	}
+
+	if flagValues.vulnerabilitySettings.FailPush && len(vulns) > 0 {
+		errMsg := "vulnerabilities have been found in the output image."
+		log.Println(errMsg)
+
+		// if failPush is set then no need to push the image
+		return nil
 	}
 
 	// push the image and determine the digest and size

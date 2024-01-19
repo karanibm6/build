@@ -27,7 +27,7 @@ kind --version
 KIND_CLUSTER_NAME="${KIND_CLUSTER_NAME:-kind}"
 
 # kind cluster version
-KIND_CLUSTER_VERSION="${KIND_CLUSTER_VERSION:-v1.25.11}"
+KIND_CLUSTER_VERSION="${KIND_CLUSTER_VERSION:-v1.28.0}"
 
 echo "# Creating a new Kubernetes cluster..."
 kind delete cluster --name="${KIND_CLUSTER_NAME}"

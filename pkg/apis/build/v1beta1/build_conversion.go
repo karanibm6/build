@@ -194,6 +194,19 @@ func (dest *BuildSpec) ConvertFrom(orig *v1alpha1.BuildSpec) error {
 
 	dest.Output.Annotations = orig.Output.Annotations
 	dest.Output.Labels = orig.Output.Labels
+	if orig.Output.VulnerabilityScan != nil {
+		dest.Output.VulnerabilityScan = &VulnerabilityScanOptions{
+			Enabled:  orig.Output.VulnerabilityScan.Enabled,
+			FailPush: orig.Output.VulnerabilityScan.FailPush,
+		}
+		if orig.Output.VulnerabilityScan.IgnoreOptions != nil {
+			dest.Output.VulnerabilityScan.IgnoreOptions = &VulnerabilityIgnoreOptions{
+				Issues:   orig.Output.VulnerabilityScan.IgnoreOptions.Issues,
+				Severity: orig.Output.VulnerabilityScan.IgnoreOptions.Severity,
+				Unfixed:  orig.Output.VulnerabilityScan.IgnoreOptions.Unfixed,
+			}
+		}
+	}
 
 	// Handle BuildSpec Timeout
 	dest.Timeout = orig.Timeout
@@ -286,6 +299,19 @@ func (dest *BuildSpec) ConvertTo(bs *v1alpha1.BuildSpec) error {
 	}
 	bs.Output.Annotations = dest.Output.Annotations
 	bs.Output.Labels = dest.Output.Labels
+	if dest.Output.VulnerabilityScan != nil {
+		bs.Output.VulnerabilityScan = &v1alpha1.VulnerabilityScanOptions{
+			Enabled:  dest.Output.VulnerabilityScan.Enabled,
+			FailPush: dest.Output.VulnerabilityScan.FailPush,
+		}
+		if dest.Output.VulnerabilityScan.IgnoreOptions != nil {
+			bs.Output.VulnerabilityScan.IgnoreOptions = &v1alpha1.VulnerabilityIgnoreOptions{
+				Issues:   dest.Output.VulnerabilityScan.IgnoreOptions.Issues,
+				Severity: dest.Output.VulnerabilityScan.IgnoreOptions.Severity,
+				Unfixed:  dest.Output.VulnerabilityScan.IgnoreOptions.Unfixed,
+			}
+		}
+	}
 
 	// Handle BuildSpec Timeout
 	bs.Timeout = dest.Timeout

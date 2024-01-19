@@ -109,6 +109,12 @@ func (b *buildPrototype) OutputImage(image string) *buildPrototype {
 	return b
 }
 
+func (b *buildPrototype) OutputVulnerabilitySettings(settings buildv1alpha1.VulnerabilityScanOptions) *buildPrototype {
+
+	b.build.Spec.Output.VulnerabilityScan = &settings
+	return b
+}
+
 func (b *buildPrototype) determineParameterIndex(name string) int {
 	index := -1
 	for i, paramValue := range b.build.Spec.ParamValues {

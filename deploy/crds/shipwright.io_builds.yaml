@@ -100,6 +100,38 @@ spec:
                     description: Labels references the additional labels to be applied
                       on the image
                     type: object
+                  vulnerabilityScan:
+                    description: VulnerabilityScan references the options for vulnerability
+                      scanning
+                    properties:
+                      enabled:
+                        description: Enabled indicates whether to run vulnerability
+                          scan for image
+                        type: boolean
+                      fail:
+                        description: FailPush indicates whether to push the image
+                          if the vulnerability scan fails
+                        type: boolean
+                      ignore:
+                        description: IgnoreOptions refers to ignore options for vulnerability
+                          scan
+                        properties:
+                          issues:
+                            description: Issues references the security issues to
+                              be ignored in vulnerability scan
+                            items:
+                              type: string
+                            type: array
+                          severity:
+                            description: Severity indicates the severities of security
+                              issues to be ignored (comma separated)
+                            type: string
+                          unfixed:
+                            description: IgnoreUnfixed indicates flag to display only
+                              fixed vulnerabilities
+                            type: boolean
+                        type: object
+                    type: object
                 required:
                 - image
                 type: object
@@ -251,6 +283,38 @@ spec:
                       type: string
                     description: Labels references the additional labels to be applied
                       on the image
+                    type: object
+                  vulnerabilityScan:
+                    description: VulnerabilityScan references the options for vulnerability
+                      scanning
+                    properties:
+                      enabled:
+                        description: Enabled indicates whether to run vulnerability
+                          scan for image
+                        type: boolean
+                      fail:
+                        description: FailPush indicates whether to push the image
+                          if the vulnerability scan fails
+                        type: boolean
+                      ignore:
+                        description: IgnoreOptions refers to ignore options for vulnerability
+                          scan
+                        properties:
+                          issues:
+                            description: Issues references the security issues to
+                              be ignored in vulnerability scan
+                            items:
+                              type: string
+                            type: array
+                          severity:
+                            description: Severity indicates the severities of security
+                              issues to be ignored (comma separated)
+                            type: string
+                          unfixed:
+                            description: IgnoreUnfixed indicates flag to display only
+                              fixed vulnerabilities
+                            type: boolean
+                        type: object
                     type: object
                 required:
                 - image
@@ -2324,6 +2388,38 @@ spec:
                     description: Describes the secret name for pushing a container
                       image.
                     type: string
+                  vulnerabilityScan:
+                    description: VulnerabilityScan defines options for vulnerability
+                      options
+                    properties:
+                      enabled:
+                        description: Enabled indicates whether to run vulnerability
+                          scan for image
+                        type: boolean
+                      fail:
+                        description: FailPush indicates whether to push the image
+                          if the vulnerability scan fails
+                        type: boolean
+                      ignore:
+                        description: IgnoreOptions refers to ignore options for vulnerability
+                          scan
+                        properties:
+                          issues:
+                            description: Issues references the security issues to
+                              be ignored in vulnerability scan
+                            items:
+                              type: string
+                            type: array
+                          severity:
+                            description: Severity indicates the severities of security
+                              issues to be ignored (comma separated)
+                            type: string
+                          unfixed:
+                            description: IgnoreUnfixed indicates flag to display only
+                              fixed vulnerabilities
+                            type: boolean
+                        type: object
+                    type: object
                 required:
                 - image
                 type: object

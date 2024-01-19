@@ -258,10 +258,8 @@ var _ = Describe("Reconcile BuildRun", func() {
 			// Docs on the TaskRun conditions can be found here
 			// https://github.com/tektoncd/pipeline/blob/main/docs/taskruns.md#monitoring-execution-status
 			It("updates the BuildRun status with a PENDING reason", func() {
-
 				// initialize a TaskRun, we need this to fake the existence of a Tekton TaskRun
 				taskRunSample = ctl.DefaultTaskRunWithStatus(taskRunName, buildRunName, ns, corev1.ConditionUnknown, "Pending")
-
 				// Stub that asserts the BuildRun status fields when
 				// Status updates for a BuildRun take place
 				statusCall := ctl.StubBuildRunStatus(
@@ -318,6 +316,88 @@ var _ = Describe("Reconcile BuildRun", func() {
 			It("updates the BuildRun status with a SUCCEEDED reason", func() {
 
 				taskRunSample = ctl.DefaultTaskRunWithStatus(taskRunName, buildRunName, ns, corev1.ConditionTrue, "Succeeded")
+
+				// Stub that asserts the BuildRun status fields when
+				// Status updates for a BuildRun take place
+				statusCall := ctl.StubBuildRunStatus(
+					"Succeeded",
+					&taskRunName,
+					build.Condition{
+						Type:   build.Succeeded,
+						Reason: "Succeeded",
+						Status: corev1.ConditionTrue,
+					},
+					corev1.ConditionTrue,
+					buildSample.Spec,
+					false,
+				)
+				statusWriter.UpdateCalls(statusCall)
+
+				result, err := reconciler.Reconcile(context.TODO(), taskRunRequest)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(reconcile.Result{}).To(Equal(result))
+				Expect(client.GetCallCount()).To(Equal(2))
+				Expect(client.StatusCallCount()).To(Equal(1))
+			})
+
+			It("updates the BuildRun status with a VulnerabilitiesFound reason", func() {
+				buildRunSample = ctl.DefaultBuildRunWithoutBuild(buildRunName)
+				taskRunSample = ctl.DefaultTaskRunWithStatus(taskRunName, buildRunName, ns, corev1.ConditionTrue, "Succeeded")
+
+				buildRunSample.Spec.BuildSpec.Output = build.Image{
+					VulnerabilityScan: &build.VulnerabilityScanOptions{
+						FailPush: true,
+					},
+				}
+				vulns := `[{"vulnerabilityID":"CVE-2019-12900","severity":"CRITICAL"},{"vulnerabilityID":"CVE-2019-8457","severity":"CRITICAL"}]`
+				taskRunSample.Status.TaskRunStatusFields.Results = append(taskRunSample.Status.Results, pipelineapi.TaskRunResult{
+					Name: "shp-image-vulnerabilities",
+					Value: pipelineapi.ParamValue{
+						Type:      pipelineapi.ParamTypeString,
+						StringVal: vulns,
+					},
+				})
+
+				// Stub that asserts the BuildRun status fields when
+				// Status updates for a BuildRun take place
+				statusCall := ctl.StubBuildRunStatus(
+					"Succeeded",
+					&taskRunName,
+					build.Condition{
+						Type:   build.Succeeded,
+						Reason: "VulnerabilitiesFound",
+						Status: corev1.ConditionFalse,
+					},
+					corev1.ConditionTrue,
+					buildSample.Spec,
+					false,
+				)
+				statusWriter.UpdateCalls(statusCall)
+
+				result, err := reconciler.Reconcile(context.TODO(), taskRunRequest)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(reconcile.Result{}).To(Equal(result))
+				Expect(client.GetCallCount()).To(Equal(2))
+				Expect(client.StatusCallCount()).To(Equal(1))
+			})
+
+			It("updates the BuildRun status with a SUCCEEDED reason if FailPush in vulnerabilities options is false", func() {
+				buildRunSample = ctl.DefaultBuildRunWithoutBuild(buildRunName)
+				taskRunSample = ctl.DefaultTaskRunWithStatus(taskRunName, buildRunName, ns, corev1.ConditionTrue, "Succeeded")
+
+				buildRunSample.Spec.BuildSpec.Output = build.Image{
+					VulnerabilityScan: &build.VulnerabilityScanOptions{
+						FailPush: false,
+					},
+				}
+				vulns := `[{"vulnerabilityID":"CVE-2019-12900","severity":"CRITICAL"},{"vulnerabilityID":"CVE-2019-8457","severity":"CRITICAL"}]`
+				taskRunSample.Status.TaskRunStatusFields.Results = append(taskRunSample.Status.Results, pipelineapi.TaskRunResult{
+					Name: "shp-image-vulnerabilities",
+					Value: pipelineapi.ParamValue{
+						Type:      pipelineapi.ParamTypeString,
+						StringVal: vulns,
+					},
+				})
 
 				// Stub that asserts the BuildRun status fields when
 				// Status updates for a BuildRun take place
